@@ -1,24 +1,30 @@
 import React, { useState } from "react";
-import axios from "axios";
-import { useSetAtom } from "jotai";
-import { userAtom } from "../../../entities/user/model/userAtom";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../app/AuthContext";
 
-export const LoginForm: React.FC = () => {
+export const LoginForm = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const setUser = useSetAtom(userAtom);
+  const [err, setErr] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await axios.post("/api/auth/token/", { username, password });
-    setUser({ token: res.data.access });
+    const ok = await login(username, password);
+    if (ok) {
+      navigate("/"); // перенаправить на главную
+    } else {
+      setErr("Неверный логин или пароль");
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-      <input placeholder="Логин" value={username} onChange={e => setUsername(e.target.value)} />
-      <input placeholder="Пароль" type="password" value={password} onChange={e => setPassword(e.target.value)} />
-      <button type="submit" className="btn btn-primary">Войти</button>
+    <form onSubmit={handleSubmit}>
+      <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Логин" />
+      <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Пароль" />
+      <button type="submit">Войти</button>
+      {err && <div style={{color:"red"}}>{err}</div>}
     </form>
   );
 };

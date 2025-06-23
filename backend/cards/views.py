@@ -1,10 +1,21 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.generics import ListAPIView
 from rest_framework import status, permissions
 from .models import Card
 from .serializers import CardSerializer
 from django.http import HttpResponse
 import csv
+
+class CardUploadView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = CardSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CardApproveView(APIView):
     permission_classes = [permissions.IsAdminUser]
@@ -48,3 +59,18 @@ class CardExportView(APIView):
                 card.image.url if card.image else ""
             ])
         return response
+
+
+class CardListView(ListAPIView):
+    serializer_class = CardSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Card.objects.all()
+        checked = self.request.query_params.get('checked')
+        rejected = self.request.query_params.get('rejected')
+        if checked is not None:
+            queryset = queryset.filter(checked=checked.lower() == "true")
+        if rejected is not None:
+            queryset = queryset.filter(rejected=rejected.lower() == "true")
+        return queryset
